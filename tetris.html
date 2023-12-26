@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Tetris Clone</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #000;
+    }
+    canvas {
+      border: 1px solid #fff;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="300" height="600"></canvas>
+  <script>
+    // Basic setup
+    const canvas = document.getElementById('gameCanvas');
+    const context = canvas.getContext('2d');
+    const blockSize = 30;
+    const boardWidth = canvas.width / blockSize;
+    const boardHeight = canvas.height / blockSize;
+
+    // Initialize the game board
+    let board = Array.from({ length: boardHeight }, () => Array(boardWidth).fill(0));
+
+    // Define Tetris shapes
+    const shapes = [
+      // O shape
+      [[1, 1], [1, 1]],
+      // L shape
+      [[1, 0], [1, 0], [1, 1]],
+      // T shape
+      [[0, 1, 0], [1, 1, 1]],
+      // I shape
+      [[1], [1], [1], [1]]
+    ];
+
+    // Set the initial active block
+    let activeBlock = { x: Math.floor(boardWidth / 2) - 1, y: 0, shape: getRandomShape() };
+
+    // Get a random shape
+    function getRandomShape() {
+      return shapes[Math.floor(Math.random() * shapes.length)];
+    }
+
+    // Draw the grid on the canvas
+    function drawGrid() {
+      context.strokeStyle = '#333';
+      for (let x = 0; x <= canvas.width; x += blockSize) {
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, canvas.height);
+        context.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += blockSize) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(canvas.width, y);
+        context.stroke();
+      }
+    }
+
+    // Draw the game board
+    function drawBoard() {
+      board.forEach((row, y) => {
+        row.forEach((value, x) => {
+          context.fillStyle = value ? '#f00' : '#000';
+          context.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+        });
+      });
+    }
+
+    // Draw the active block
+    function drawBlock() {
+      activeBlock.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            context.fillStyle = '#0f0';
+            context.fillRect((activeBlock.x + x) * blockSize, (activeBlock.y + y) * blockSize, blockSize, blockSize);
+          }
+        });
+      });
+    }
+
+    // Game update logic
+    function update() {
+      drawBoard();
+      drawBlock();
+      drawGrid();
+
+      let futureBlock = { ...activeBlock, y: activeBlock.y + 1 };
+
+      if (!isCollidingWithBoard(futureBlock)) {
+        activeBlock.y++;
+      } else {
+        mergeBlockToBoard();
+        checkAndClearLines();
+        resetActiveBlock();
+        if (isCollidingWithBoard(activeBlock)) {
+          alert("Game over");
+          clearInterval(gameInterval);
+        }
+      }
+    }
+
+    // Reset the active block
+    function resetActiveBlock() {
+      activeBlock = { x: Math.floor(boardWidth / 2) - 1, y: 0, shape: getRandomShape() };
+    }
+
+    // Merge the block into the board
+    function mergeBlockToBoard() {
+      activeBlock.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            board[activeBlock.y + y][activeBlock.x + x] = 1;
+          }
+        });
+      });
+    }
+
+    // Check and clear full lines
+    function checkAndClearLines() {
+      for (let y = boardHeight - 1; y >= 0; y--) {
+        if (board[y].every(value => value === 1)) {
+          board.splice(y, 1);
+          board.unshift(Array(boardWidth).fill(0));
+        }
+      }
+    }
+
+    // Rotate the block clockwise
+    function rotateClockwise(matrix) {
+      return matrix[0].map((_, i) => matrix.map(row => row[i]).reverse());
+    }
+
+    // Handle keyboard input
+    window.addEventListener('keydown', (e) => {
+      let newX = activeBlock.x;
+      let newY = activeBlock.y;
+      let newShape = activeBlock.shape;
+
+      switch (e.key) {
+        case 'ArrowLeft': newX--; break;
+        case 'ArrowRight': newX++; break;
+        case 'ArrowUp': newShape = rotateClockwise(activeBlock.shape); break;
+        case 'ArrowDown': newY++; break;
+      }
+
+      const futureBlock = { ...activeBlock, x: newX, y: newY, shape: newShape };
+      if (!isCollidingWithBoard(futureBlock)) {
+        activeBlock = futureBlock;
+      }
+    });
+
+    // Check for collisions
+    function isCollidingWithBoard(block) {
+      return block.shape.some((row, y) => 
+        row.some((value, x) => 
+          value && (
+            block.x + x < 0 || 
+            block.x + x >= boardWidth || 
+            block.y + y >= boardHeight || 
+            board[block.y + y][block.x + x]
+          )
+        )
+      );
+    }
+
+    // Start the game loop
+    const gameInterval = setInterval(update, 1000);
+  </script>
+</body>
+</html>

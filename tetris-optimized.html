@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Tetris Clone</title>
+  <style>
+    body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #000; }
+    canvas { border: 1px solid #fff; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="300" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas'), context = canvas.getContext('2d'),
+          blockSize = 30, boardWidth = 10, boardHeight = 20,
+          shapes = [[[1, 1], [1, 1]], [[1, 0], [1, 0], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1], [1], [1], [1]]],
+          board = Array.from({ length: boardHeight }, () => Array(boardWidth).fill(0)),
+          getRandomShape = () => shapes[Math.floor(Math.random() * shapes.length)],
+          draw = (f, x, y, c) => f.forEach((row, dy) => row.forEach((v, dx) => { if (v) { context.fillStyle = c; context.fillRect((x + dx) * blockSize, (y + dy) * blockSize, blockSize, blockSize); }})),
+          merge = (x, y, shape) => shape.forEach((row, dy) => row.forEach((v, dx) => { if (v) board[y + dy][x + dx] = 1; })),
+          collide = (x, y, shape) => shape.some((row, dy) => row.some((v, dx) => v && (x + dx < 0 || x + dx >= boardWidth || y + dy >= boardHeight || board[y + dy][x + dx]))),
+          rotate = m => m[0].map((_, i) => m.map(row => row[i]).reverse()),
+          checkLines = () => { for (let y = boardHeight - 1; y >= 0; y--) if (board[y].every(v => v)) { board.splice(y, 1); board.unshift(Array(boardWidth).fill(0)); }},
+          update = () => { if (!collide(active.x, active.y + 1, active.shape)) active.y++; else { merge(active.x, active.y, active.shape); checkLines(); reset(); } drawBoard(); },
+          drawBoard = () => { context.clearRect(0, 0, canvas.width, canvas.height); board.forEach((row, y) => draw(row, 0, y, '#f00')); draw(active.shape, active.x, active.y, '#0f0'); },
+          reset = () => active = { x: Math.floor(boardWidth / 2) - 1, y: 0, shape: getRandomShape() };
+    let active = { x: Math.floor(boardWidth / 2) - 1, y: 0, shape: getRandomShape() };
+    
+    window.addEventListener('keydown', (e) => {
+      let x = active.x, y = active.y, shape = active.shape;
+      if (e.key === 'ArrowLeft') x--;
+      else if (e.key === 'ArrowRight') x++;
+      else if (e.key === 'ArrowUp') shape = rotate(shape);
+      else if (e.key === 'ArrowDown') y++;
+      if (!collide(x, y, shape)) { active.x = x; active.y = y; active.shape = shape; }
+    }); 
+    setInterval(update, 1000);
+  </script>
+</body>
+</html>
